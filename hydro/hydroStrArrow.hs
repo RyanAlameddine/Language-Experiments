@@ -8,15 +8,15 @@ import Data.Typeable
 
 import qualified Data.Map as Map    
 
--- data Channel a b = 
---                    CMap (a -> b) (Channel a b)                    --CMap "|x| x * 5" (c :: String -> Int)
+-- data Channel a b = CMap String (Channel c b)                    --CMap "|x| x * 5" (c :: String -> Int)
 --                     | CPure b                                   --CPure 5
---                     | CLift (a -> b) (Channel a b) (Channel a b)  --CLift "|(x, y)| x + y" (c :: String -> Int) (c :: String -> Int)
+--                     | CLift String (Channel a c) (Channel a d)  --CLift "|(x, y)| x + y" (c :: String -> Int) (c :: String -> Int)
 --                     | CId                                       --CId
---                     | CComp (Channel a b) (Channel a b)         --CCompose (c :: String -> Int) (c :: Int -> Bool)
---                     | CArr (a -> b)                               --CArr "|x| x + 4"
---                     | CMerge (Channel a b) (Channel a b)        --CMerge (c :: String -> Int) (c :: Bool -> Long)
-                    
+--                     | CCompose (Channel a c) (Channel c b)      --CCompose (c :: String -> Int) (c :: Int -> Bool)
+--                     | CArr String                               --CArr "|x| x + 4"
+--                     | CMerge (Channel a' b') (Channel a'' b'')  --CMerge (c :: String -> Int) (c :: Bool -> Long)
+
+--                     deriving Show
 
 data Channel x y where
         CMap    :: (b -> c) -> Channel a b                      -> Channel a c
@@ -26,14 +26,15 @@ data Channel x y where
         CComp   :: Channel b c -> Channel a b                   -> Channel a c
         CArr    :: (a -> b)                                     -> Channel a b
         CMerge  :: Channel a b -> Channel a' b'                 -> Channel (a, a') (b, b')
+        CTag    :: String -> Channel a b -> Channel a b --tag with Rust version of f
                     
 
-instance Functor (Channel String) where
+instance Functor (Channel a) where
     --fmap f (Channel c) = Channel (fmap f c) --map over result
     fmap = CMap
     --o = i -> map(f)
 
-instance Applicative (Channel String) where
+instance Applicative (Channel a) where
     --pure = Channel . pure  --channel that throws away it's input and returns whatever is passed into pure
     pure = CPure
     --o = map(|x| constant)
@@ -65,30 +66,25 @@ instance Arrow Channel where
     -- a -> enumerate() -> [0]o
     -- b -> enumerate() -> [1]o
 
-cs :: String -> String -> String
-cs = const
 
-cs2 :: String -> String -> String -> String
-cs2 = const . const
-
-
-
---select2 :: (i -> Bool) -> Channel i (o, o) -> Channel i o
-select2 p = liftA2 (cs2 "|(p, (o1, o2))| p ? o1 : o2") (arr p)
+select2 :: Channel i Bool -> Channel i (o, o) -> Channel i o
+select2 p c = CTag "selector" $ liftA2 selector p c
+    where
+        selector True  (o, _) = o
+        selector False (_, o) = o
 
 --splits into channel a or channel b and selects output depending on the predicate,
 --diamond :: (i -> Bool) -> Channel i o -> Channel i o -> Channel i o
 
 
+cDouble  = CTag "*2" $ arr ((*2) :: Int -> Int)
+cPlusOne = CTag "+1" $ arr ((+1) :: Int -> Int)
 
-cDouble  = arr (cs "|x| x * 2") :: Channel String String
-cPlusOne = arr (cs "|x| x + 1") :: Channel String String
-
-cPlusOnePlusDouble = liftA2 (cs2 "|(x, y)| x + y") cPlusOne cDouble
+cPlusOnePlusDouble = CTag "+" $ liftA2 (+) cPlusOne cDouble
 
 --double if even, plusOne if odd
-cDoubleOrPlus = select2 (cs "|x| x % 2 == 0") c
-    where c = liftA2 (cs2 "|(x, y)| (x, y)") cDouble cPlusOne
+cDoubleOrPlus = select2 (CTag "even" $ arr even) c
+    where c = CTag "(,)" $ liftA2 (,) cDouble cPlusOne
 
 -- for example, 5 will output (6, 12)
 cFancy = cDoubleOrPlus &&& (cDoubleOrPlus >>> cDoubleOrPlus)
@@ -104,18 +100,23 @@ cFancy = cDoubleOrPlus &&& (cDoubleOrPlus >>> cDoubleOrPlus)
 
 
 
-instance Show (Channel String String) where
-    show (CMap  (f :: String -> String) c)    = "[CMap f:" ++ f "" ++ ", c:" ++ show c ++ "]"
-    show (CPure b)      = "[CPure]"
-    show (CLift f a b)  = "[CLift f:" ++ f "" ++ ", a:" ++ show a ++ ", b:" ++ show b ++ "]"
-    show (CComp b a)    = "[CComp, a:" ++ show a ++ ", b:" ++ show b ++ "]"
-    show (CArr  f)      = "[CArr, f: " ++ f "" ++ "]"
-    show (CMerge a b)   = "[CMerge, a:" ++ show a ++ ", b:" ++ show b ++ "]"
-    show CId            = "[CId]"
-    show _ = "Error"
+instance Show (Channel a b) where
+    show = s ""
+        where
+            s t (CMap  f c)    = "[CMap f:" ++ t ++ ", c:" ++ show c ++ "]"
+            s t (CPure b)      = "[CPure]"
+            s t (CLift f a b)  = "[CLift f:" ++ t ++ ", a:" ++ show a ++ ", b:" ++ show b ++ "]"
+            s t (CComp b a)    = "[CComp, a:" ++ show a ++ ", b:" ++ show b ++ "]"
+            s t (CArr  f)      = "[CArr, f: " ++ t ++ "]"
+            s t (CMerge a b)   = "[CMerge, a:" ++ show a ++ ", b:" ++ show b ++ "]"
+            s t CId            = "[CId]"
+            s _ (CTag t c)     = s t c
 
 
 -- unwrap Nothing = ""
 -- unwrap (Just s) = s
 
-main = print $ show cFancy-- ++ unwrap (Map.lookup (+1) m)
+--main = print $ show cDouble -- "[CArr, f: *2]"
+--main = print $ show cDoubleOrPlus -- "[CLift f:selector, a:[CArr, f: even], b:[CLift f:(,), a:[CArr, f: *2], b:[CArr, f: +1]]]"
+
+main = print $ show cFancy
