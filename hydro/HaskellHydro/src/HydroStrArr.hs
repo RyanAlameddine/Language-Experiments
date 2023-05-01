@@ -193,7 +193,7 @@ toRust inputC tag (CComp b a) = (strA ++ strB ++ strC, outputC, nextFree)
         inputA = succ outputC
         (strA, outputA, inputB)   = toRust inputA "" a
         (strB, outputB, nextFree) = toRust inputB "" b
-        strC = format "c{0} = c{1};\nc{4} -> {2};\n{3} = {5};\n" $ map show [inputC, inputA, inputB, outputC, outputA, outputB] ++ [tag]
+        strC = format "c{0} = c{1};\nc{4} -> c{2};\nc{3} = c{5};\n" $ map show [inputC, inputA, inputB, outputC, outputA, outputB] ++ [tag]
 --o = map(f)
 --inputOutputC = map(f)
 toRust inOutC tag (CArr f) = (strC, inOutC, succ inOutC)
@@ -230,7 +230,7 @@ toRust i _ (CTag t c)    = toRust i t c
 cTest =  liftA2T "|(x, y)| x + y" (+) cPlusOne cDouble `CComp` cDouble
 
 
-
-output = cDoubleOrPlus
+output :: Channel Int (Int, Int)
+output = cFancy
 
 generateOutput = putStr $ rustGen output
