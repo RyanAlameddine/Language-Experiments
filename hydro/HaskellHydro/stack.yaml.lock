@@ -11,6 +11,13 @@ packages:
       sha256: 026136165778e83cb04c587b3609d95731ccf35da07249c9eb0f29ceb6946cbb
   original:
     hackage: text-format-simple-1.1.0@sha256:5815236396328f556b9896fdcb949d15b485ef05394c9dc846e94b0306cb4036,735
+- completed:
+    hackage: utility-ht-0.0.17@sha256:164c174802d1a477d6bfa259edcf157745bf66b00aeb929f384e244e248a3da8,3139
+    pantry-tree:
+      size: 3198
+      sha256: 1a6b4000eaf4322fb1a0090b346eecf23fc592d607dc987c41225829fb35324b
+  original:
+    hackage: utility-ht-0.0.17
 snapshots:
 - completed:
     size: 649618
