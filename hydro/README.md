@@ -5,4 +5,4 @@ The second is /hydro, which is simply a blank hydroflow project for testing Hask
 
 To view the Channel GADT and typeclass implementations, see /HaskellHydro/src/HydroArrow.hs. To see the Rust generator, see /HaskellHydro/src/RustGenerator.hs. 
 
-To play around with and write your own Channels, see /HaskellHydro/src/Lib.hs.
+**To play around with and write your own Channels, see /HaskellHydro/src/Lib.hs.**
