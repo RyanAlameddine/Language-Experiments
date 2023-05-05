@@ -11,6 +11,9 @@ import Text.Format
 
 
 -- RUST GENERATOR --
+--Takes in a Channel object and generates the corresponding rust code
+
+
 -- channel -> (hydroflow, input )
 rustGen :: Channel i o -> String
 rustGen c = format "\n{0}\ninput -> c0;\nc{1} -> output;" [rust, show o]

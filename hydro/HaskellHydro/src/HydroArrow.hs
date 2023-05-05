@@ -10,6 +10,8 @@ import Text.Format
 
 import qualified Data.Map as Map    
 
+--Represents a hydroflow channel.
+--Each type in the GADT represents a different operation required for the typeclass implementations below.
 data Channel x y where
         CMap    :: (b -> c) -> Channel a b                      -> Channel a c
         CPure   :: b                                            -> Channel a b
@@ -18,7 +20,7 @@ data Channel x y where
         CComp   :: Channel b c -> Channel a b                   -> Channel a c
         CArr    :: (a -> b)                                     -> Channel a b
         CMerge  :: Channel a b -> Channel a' b'                 -> Channel (a, a') (b, b')
-        CTag    :: String -> Channel a b -> Channel a b --tag with Rust version of f
+        CTag    :: String -> Channel a b -> Channel a b --tag with Rust code equivalent of f in child
                     
 
 instance Functor (Channel a) where
